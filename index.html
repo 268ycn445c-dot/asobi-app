@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fff6e4">
+<link rel="icon" href="donguri/icon-192.png">
+<title>あそびば</title>
+<style>
+  :root{--bg:#fff6e4;--card:#fff;--line:#e9cf9c;--ink:#4a2c12;--sub:#9a7448}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","BIZ UDPGothic","Yu Gothic UI",sans-serif;
+    padding:calc(env(safe-area-inset-top) + 24px) 16px 40px}
+  h1{text-align:center;font-size:clamp(32px,8vw,56px);margin:0 0 24px}
+  .grid{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+  a.card,div.card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px 12px;background:var(--card);border:5px solid var(--line);
+    border-radius:28px;text-decoration:none;color:inherit;box-shadow:0 6px 0 var(--line)}
+  a.card:active{transform:translateY(5px);box-shadow:0 1px 0 var(--line)}
+  .pic{font-size:96px;line-height:1}
+  .pic img{height:110px}
+  .nm{font-size:30px;font-weight:bold}
+  .soon{opacity:.5}
+  .soon .nm::after{content:"（じゅんびちゅう）";display:block;font-size:16px;color:var(--sub);text-align:center}
+  p{max-width:900px;margin:28px auto 0;color:var(--sub);font-size:15px;line-height:1.7}
+</style>
+</head>
+<body>
+<h1>あそびば</h1>
+<div class="grid">
+  <a class="card" href="donguri/"><div class="pic"><img src="donguri/icon-192.png" alt=""></div><div class="nm">どんぐり おさんぽ</div></a>
+  <div class="card soon"><div class="pic">🪲</div><div class="nm">だんごむし さがし</div></div>
+  <div class="card soon"><div class="pic">🚒</div><div class="nm">しょうぼうしゃ</div></div>
+</div>
+<p>ゲームを開いてから「ホーム画面に追加」すると、そのゲームだけをアプリのように全画面で開けます。<br>一度開けば、電波のない所でも遊べます。</p>
+</body>
+</html>

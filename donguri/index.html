@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="どんぐり">
+<meta name="theme-color" content="#7ec8f0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>どんぐり おさんぽ</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#7ec8f0;}
+  body{position:fixed;inset:0;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;
+    font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif;color:#4a2c12}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #safe{position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10}
+  .hidden{display:none !important}
+  button{font-family:inherit;color:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+
+  /* はじめ */
+  #start{background:rgba(126,200,240,.55);cursor:pointer}
+  #start h1{margin:0 0 2vmin;font-size:clamp(40px,11vmin,110px);color:#fff;letter-spacing:.06em;
+    text-shadow:0 4px 0 #8a5a2b,0 0 18px rgba(0,0,0,.15);text-align:center;line-height:1.15}
+  #start img{width:clamp(120px,32vmin,280px);animation:bob 1.2s ease-in-out infinite;filter:drop-shadow(0 8px 6px rgba(0,0,0,.2))}
+  #start .tap{margin-top:3vmin;font-size:clamp(28px,8vmin,72px);animation:tap 1.2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-6%) rotate(6deg)}}
+  @keyframes tap{0%,100%{transform:translateY(0)}50%{transform:translateY(-20%)}}
+
+  /* ずかん */
+  #zukan{background:#fff6e4;justify-content:flex-start;overflow:auto;touch-action:pan-y;
+    padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 20px);box-sizing:border-box}
+  .zhead{width:100%;max-width:980px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .ztitle{font-size:clamp(28px,6vmin,52px);font-weight:bold}
+  .bigx{width:clamp(64px,13vmin,96px);height:clamp(64px,13vmin,96px);border-radius:50%;border:none;background:#e8604c;color:#fff;
+    font-size:clamp(32px,7vmin,52px);box-shadow:0 5px 0 #b13e2d;flex:none}
+  .bigx:active{transform:translateY(4px);box-shadow:0 1px 0 #b13e2d}
+  #zgrid{width:100%;max-width:980px;display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:14px;margin-top:14px}
+  .card{background:#fff;border:4px solid #e9cf9c;border-radius:22px;padding:10px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .card img{height:clamp(90px,16vmin,140px)}
+  .card.no img{filter:brightness(0);opacity:.16}
+  .card .nm{font-size:clamp(20px,3.6vmin,30px);font-weight:bold;white-space:nowrap}
+  .card .ct{font-size:clamp(16px,3.2vmin,22px);color:#9a7448}
+  .card.wig{animation:wig .5s}
+  @keyframes wig{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg) scale(1.05)}75%{transform:rotate(6deg) scale(1.05)}}
+  #zfriends{width:100%;max-width:980px;margin-top:20px;font-size:clamp(40px,9vmin,72px);text-align:center;line-height:1.3}
+  #zfriends .lb{display:block;font-size:clamp(20px,4vmin,30px);font-weight:bold}
+
+  /* せってい */
+  #settings{background:rgba(40,30,20,.55)}
+  .sbox{background:#fff;border-radius:22px;padding:20px;width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;box-sizing:border-box;touch-action:pan-y}
+  .sbox h2{margin:0 0 12px;font-size:24px}
+  .row{margin:14px 0}
+  .row .lb{font-size:17px;font-weight:bold;margin-bottom:6px}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;padding:12px 4px;font-size:17px;border-radius:12px;border:2px solid #d9c19a;background:#fffaf0}
+  .seg button.on{background:#f0a830;border-color:#c98410;color:#fff;font-weight:bold}
+  .sbtns{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+  .sbtns button,.sbtns a{padding:14px;font-size:17px;border-radius:12px;border:none;background:#eee;text-align:center;text-decoration:none;color:#333}
+  .sbtns .close{background:#5aa845;color:#fff;font-weight:bold}
+  .sbtns .danger{background:#fbe3df;color:#b13e2d}
+  .note{font-size:13px;color:#777;margin-top:10px;line-height:1.5}
+</style>
+</head>
+<body>
+<div id="safe"></div>
+<canvas id="cv"></canvas>
+
+<div id="start" class="ov">
+  <h1>どんぐり<br>おさんぽ</h1>
+  <img id="startImg" alt="">
+  <div class="tap">👆</div>
+</div>
+
+<div id="zukan" class="ov hidden">
+  <div class="zhead"><div class="ztitle">📖 どんぐり ずかん</div><button class="bigx" id="zclose" aria-label="とじる">✕</button></div>
+  <div id="zgrid"></div>
+  <div id="zfriends"></div>
+</div>
+
+<div id="settings" class="ov hidden">
+  <div class="sbox">
+    <h2>せってい（おとなよう）</h2>
+    <div class="row"><div class="lb">こえ（なまえの よみあげ）</div><div class="seg" data-key="voice"><button data-v="true">あり</button><button data-v="false">なし</button></div></div>
+    <div class="row"><div class="lb">こうかおん</div><div class="seg" data-key="sfx"><button data-v="true">あり</button><button data-v="false">なし</button></div></div>
+    <div class="row"><div class="lb">あるく はやさ</div><div class="seg" data-key="speed"><button data-v="0.6">ゆっくり</button><button data-v="1">ふつう</button><button data-v="1.5">はやい</button></div></div>
+    <div class="row"><div class="lb">どんぐりの かず</div><div class="seg" data-key="density"><button data-v="0.6">すくない</button><button data-v="1">ふつう</button><button data-v="1.5">おおい</button></div></div>
+    <div class="sbtns">
+      <button class="close" id="sclose">とじる</button>
+      <a href="../">ほかの あそびへ</a>
+      <button class="danger" id="sreset">きろくを ぜんぶ けす</button>
+    </div>
+    <div class="note">iPhone・iPad で音が出ないときは、本体の消音スイッチ（マナーモード）を確認してください。<br>この画面は右下の ⚙ を長押しすると開きます。</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), ctx = cv.getContext('2d');
+
+/* ---------- 保存 ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const SAVE_KEY = 'donguri-save-v1', SET_KEY = 'donguri-settings-v1';
+const save = Object.assign({ counts: {}, total: 0, friends: [] }, store.get(SAVE_KEY, {}));
+const settings = Object.assign({ voice: true, sfx: true, speed: 1, density: 1 }, store.get(SET_KEY, {}));
+const persist = () => store.set(SAVE_KEY, save);
+
+/* ---------- どんぐりの絵（SVG） ---------- */
+function nutPath(cx, cy, rx, ry, tip) {
+  return `M${cx-rx} ${cy} C${cx-rx} ${cy-ry*1.25} ${cx+rx} ${cy-ry*1.25} ${cx+rx} ${cy} ` +
+         `C${cx+rx} ${cy+ry*0.7} ${cx+rx*0.4} ${cy+ry} ${cx} ${cy+ry+tip} ` +
+         `C${cx-rx*0.4} ${cy+ry} ${cx-rx} ${cy+ry*0.7} ${cx-rx} ${cy} Z`;
+}
+function nutSVG(id, cx, cy, rx, ry, c1, c2, tip, gloss = 0.35) {
+  return `<defs><radialGradient id="n${id}" cx="38%" cy="35%" r="75%"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></radialGradient></defs>
+  <path d="${nutPath(cx, cy, rx, ry, tip)}" fill="url(#n${id})" stroke="#3a1f0b" stroke-width="2.2"/>
+  <path d="M${cx-rx*0.5} ${cy-ry*0.3} Q${cx-rx*0.6} ${cy+ry*0.45} ${cx-rx*0.18} ${cy+ry*0.9}" stroke="#fff" stroke-opacity=".13" stroke-width="3" fill="none"/>
+  <path d="M${cx+rx*0.5} ${cy-ry*0.3} Q${cx+rx*0.6} ${cy+ry*0.45} ${cx+rx*0.18} ${cy+ry*0.9}" stroke="#000" stroke-opacity=".12" stroke-width="3" fill="none"/>
+  <ellipse cx="${cx-rx*0.42}" cy="${cy+ry*0.05}" rx="${rx*0.17}" ry="${ry*0.33}" fill="#fff" opacity="${gloss}"/>
+  <circle cx="${cx}" cy="${cy+ry+tip}" r="2.4" fill="#3a1f0b"/>`;
+}
+function cupPath(cx, yt, yb, w) {
+  const h = w / 2;
+  return `M${cx-h} ${yb} C${cx-h} ${yt} ${cx+h} ${yt} ${cx+h} ${yb} Q${cx} ${yb+w*0.12} ${cx-h} ${yb} Z`;
+}
+// cap: type = scale | ring | shaggy
+function capSVG(id, o) {
+  const { cx = 50, yb, vis, w, col, dark, type } = o;
+  const yt = yb - vis / 0.75, top = yb - vis, h = w / 2;
+  let tex = '';
+  if (type === 'scale') {
+    const step = o.step || 6;
+    for (let y = top + 2, r = 0; y < yb + 6; y += step, r++) {
+      for (let x = cx - h - 4 + (r % 2) * step / 2; x < cx + h + 4; x += step + 1) {
+        tex += `<path d="M${x-step/2} ${y} Q${x} ${y+step*0.75} ${x+step/2} ${y}" stroke="${dark}" stroke-width="1.6" fill="none"/>`;
+      }
+    }
+  } else if (type === 'ring') {
+    const n = o.rings || 6;
+    for (let i = 1; i <= n; i++) {
+      const y = top + (yb - top + 4) * i / (n + 0.5);
+      tex += `<path d="M${cx-h-2} ${y+4} Q${cx} ${y-6} ${cx+h+2} ${y+4}" stroke="${dark}" stroke-width="2.2" fill="none"/>`;
+    }
+  }
+  let fringe = '', rim = '';
+  if (type === 'shaggy') {
+    const L = o.len || 12, ry = vis * 0.9, ccy = yb - vis * 0.25;
+    const layers = o.long ? [[1.0, 30, 2.6], [0.75, 24, 3.2]] : [[1.0, 26, 3.6], [0.7, 22, 3.8]];
+    for (const [f, n, sw] of layers) {
+      for (let i = 0; i <= n; i++) {
+        const a = Math.PI * (1.02 + 0.96 * i / n);
+        const px = cx + Math.cos(a) * h * 0.92, py = ccy + Math.sin(a) * ry * 0.95;
+        const dx = Math.cos(a), dy = Math.sin(a), l = L * f * (0.8 + 0.4 * ((i * 37) % 7) / 7);
+        const sg = (i % 2 ? 1 : -1) * (o.long ? 0.7 : 0.5);
+        const qx = px + dx * l * 0.6 - dy * l * sg, qy = py + dy * l * 0.6 + dx * l * sg;
+        fringe += `<path d="M${px} ${py} Q${qx} ${qy} ${px+dx*l} ${py+dy*l}" stroke="${f === 1 ? dark : col}" stroke-width="${sw}" stroke-linecap="round" fill="none"/>`;
+      }
+    }
+    // ふちから垂れる毛
+    for (let x = cx - h + 3; x <= cx + h - 3; x += o.long ? 5 : 6) {
+      const l = L * (o.long ? 0.7 : 0.45), d = (x - cx) / h;
+      rim += `<path d="M${x} ${yb-2} q${d*4} ${l*0.5} ${d*l*0.5} ${l}" stroke="${col}" stroke-width="${o.long ? 2.6 : 3.4}" stroke-linecap="round" fill="none"/>`;
+    }
+  }
+  const stem = o.stem ? `<rect x="${cx-2.8}" y="${top-8}" width="5.6" height="11" rx="2.5" fill="${dark}"/>` : '';
+  return `${stem}<defs><clipPath id="c${id}"><path d="${cupPath(cx, yt, yb, w)}"/></clipPath></defs>
+  ${fringe}
+  <path d="${cupPath(cx, yt, yb, w)}" fill="${col}" stroke="${dark}" stroke-width="2"/>
+  <g clip-path="url(#c${id})">${tex}</g>
+  ${rim}`;
+}
+function shiiSVG(id) {
+  const cx = 50, cy = 72, rx = 16, ry = 30;
+  return `<g transform="translate(0 ${cy*2+6}) scale(1 -1)">${nutSVG(id, cx, cy, rx, ry, '#7a4622', '#2b160a', 7, 0.3)}</g>
+  <path d="M50 116 C64 116 70 98 66 82 C61 92 57 102 50 106 Z" fill="#8f7b55" stroke="#5b4a2e" stroke-width="2"/>
+  <path d="M50 116 C36 116 30 98 34 82 C39 92 43 102 50 106 Z" fill="#a08a62" stroke="#5b4a2e" stroke-width="2"/>
+  <circle cx="40" cy="100" r="1.4" fill="#5b4a2e"/><circle cx="44" cy="108" r="1.4" fill="#5b4a2e"/><circle cx="60" cy="100" r="1.4" fill="#5b4a2e"/><circle cx="56" cy="108" r="1.4" fill="#5b4a2e"/>`;
+}
+const wrap = inner => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140" width="200" height="280">${inner}</svg>`;
+
+const SPECIES = [
+  { id: 'kunugi', name: 'クヌギ', kana: 'くぬぎ', weight: 20, size: 1.1,
+    svg: () => nutSVG('ku', 50, 88, 31, 30, '#b5733a', '#6e3b16', 4) + capSVG('ku', { yb: 72, vis: 26, w: 76, col: '#8d6b3f', dark: '#5e4524', type: 'shaggy', len: 12 }) },
+  { id: 'konara', name: 'コナラ', kana: 'こなら', weight: 20, size: 0.95,
+    svg: () => nutSVG('ko', 50, 84, 20, 36, '#cf9050', '#7d4a1c', 5) + capSVG('ko', { yb: 60, vis: 16, w: 46, col: '#a48a5e', dark: '#6f5a37', type: 'scale', step: 6, stem: true }) },
+  { id: 'matebashii', name: 'マテバシイ', kana: 'まてばしい', weight: 18, size: 1.05,
+    svg: () => nutSVG('ma', 50, 80, 17, 44, '#96562a', '#4b260d', 4, 0.5) + capSVG('ma', { yb: 46, vis: 12, w: 40, col: '#a99470', dark: '#75633f', type: 'scale', step: 5 }) },
+  { id: 'sudajii', name: 'スダジイ', kana: 'すだじい', weight: 14, size: 0.72,
+    svg: () => shiiSVG('su') },
+  { id: 'arakashi', name: 'アラカシ', kana: 'あらかし', weight: 12, size: 0.9,
+    svg: () => nutSVG('ar', 50, 88, 22, 31, '#b3733a', '#5d3313', 5) + capSVG('ar', { yb: 74, vis: 22, w: 52, col: '#8f8d70', dark: '#5d5b45', type: 'ring', rings: 6 }) },
+  { id: 'shirakashi', name: 'シラカシ', kana: 'しらかし', weight: 9, size: 0.85,
+    svg: () => nutSVG('sh', 50, 90, 17, 30, '#8e5a2a', '#40230d', 5) + capSVG('sh', { yb: 75, vis: 20, w: 42, col: '#7f826b', dark: '#50523f', type: 'ring', rings: 7 }) },
+  { id: 'mizunara', name: 'ミズナラ', kana: 'みずなら', weight: 5, size: 1.05, rare: true,
+    svg: () => nutSVG('mi', 50, 86, 25, 34, '#c48a4c', '#78471c', 5) + capSVG('mi', { yb: 70, vis: 24, w: 60, col: '#96794f', dark: '#64502f', type: 'scale', step: 8 }) },
+  { id: 'kashiwa', name: 'カシワ', kana: 'かしわ', weight: 2, size: 1.1, rare: true,
+    svg: () => nutSVG('ka', 50, 90, 28, 29, '#c08347', '#74431b', 4) + capSVG('ka', { yb: 74, vis: 24, w: 72, col: '#c4a676', dark: '#8a6f45', type: 'shaggy', len: 19, long: true }) },
+];
+const ANIMALS = [
+  { e: '🐿️', k: 'りす' }, { e: '🐰', k: 'うさぎ' }, { e: '🦔', k: 'はりねずみ' }, { e: '🦝', k: 'たぬき' },
+  { e: '🦊', k: 'きつね' }, { e: '🐻', k: 'くま' }, { e: '🦉', k: 'ふくろう' }, { e: '🐗', k: 'いのしし' },
+];
+const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+
+function loadImages() {
+  return Promise.all(SPECIES.map(sp => new Promise(res => {
+    sp.url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(wrap(sp.svg()));
+    const img = new Image();
+    img.onload = () => { sp.img = img; res(); };
+    img.onerror = () => res();
+    img.src = sp.url;
+  })));
+}
+function pickSpecies() {
+  let r = Math.random() * SPECIES.reduce((a, s) => a + s.weight, 0);
+  for (const s of SPECIES) { if ((r -= s.weight) < 0) return s; }
+  return SPECIES[0];
+}
+
+/* ---------- おと ---------- */
+let AC = null;
+function audioInit() {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+  } catch (e) {}
+}
+function tone(type, f0, f1, dur, vol = 0.25, delay = 0) {
+  if (!settings.sfx || !AC) return;
+  const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur + 0.02);
+}
+function noise(dur, freq, vol = 0.2) {
+  if (!settings.sfx || !AC) return;
+  const n = Math.floor(AC.sampleRate * dur), buf = AC.createBuffer(1, n, AC.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  s.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.8; g.gain.value = vol;
+  s.connect(f).connect(g).connect(AC.destination); s.start();
+}
+const SFX = {
+  pick() { tone('sine', 520, 1250, 0.14, 0.3); tone('triangle', 900, 1800, 0.1, 0.12, 0.05); },
+  plop() { tone('triangle', 340, 170, 0.16, 0.28); },
+  rustle() { noise(0.28, 2600, 0.35); },
+  boing() { tone('sine', 220, 520, 0.22, 0.28); },
+  sparkle() { [1568, 2093, 2637].forEach((f, i) => tone('sine', f, f * 1.01, 0.18, 0.12, i * 0.07)); },
+  fanfare() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone('triangle', f, f, i === 5 ? 0.5 : 0.16, 0.25, i * 0.13)); },
+};
+
+/* ---------- こえ ---------- */
+let jaVoice = null;
+function findVoice() {
+  try {
+    const vs = speechSynthesis.getVoices().filter(v => /^ja/i.test(v.lang));
+    jaVoice = vs.find(v => /Kyoko|O-ren|Nanami|Google/i.test(v.name)) || vs[0] || null;
+  } catch (e) {}
+}
+if ('speechSynthesis' in window) { findVoice(); speechSynthesis.onvoiceschanged = findVoice; }
+function speak(text, rate = 0.85) {
+  if (!settings.voice || !('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP'; u.rate = rate; u.pitch = 1.15;
+    if (jaVoice) u.voice = jaVoice;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+/* ---------- けしき ---------- */
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const PALETTES = [
+  { sky1: '#7ec8f0', sky2: '#dff3ff', hill1: '#b4dd95', hill2: '#86c56a', crowns: ['#5aa845', '#6dbb52', '#4f9a3c'], trunk: '#7a5230', ground: '#9ccf6a', path: '#ecd7ab', edge: '#d4b886', leaf: ['#6dbb52', '#9ccf6a', '#c9a35a'] },
+  { sky1: '#9fd8e8', sky2: '#eaf7ef', hill1: '#7bb874', hill2: '#56995a', crowns: ['#3f8a3f', '#2f7a3a', '#4c9a48'], trunk: '#5e3d22', ground: '#78b45c', path: '#dcc597', edge: '#bba273', leaf: ['#3f8a3f', '#78b45c', '#a8c060'] },
+  { sky1: '#f4bf86', sky2: '#fdeed8', hill1: '#e0a060', hill2: '#cc7a3e', crowns: ['#e07b2e', '#e2b03a', '#c94b2e'], trunk: '#6b4224', ground: '#cfae62', path: '#efd9ab', edge: '#d1b07a', leaf: ['#e07b2e', '#e2b03a', '#c94b2e'] },
+].map(p => { const o = {}; for (const k in p) o[k] = Array.isArray(p[k]) ? p[k].map(hex) : hex(p[k]); return o; });
+const SCENE_NAMES = ['こうえん', 'もり', 'あきの やま'];
+function mixPalette(a, b, f) {
+  const m = (x, y) => `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * f)).join(',')})`;
+  const o = {};
+  for (const k in a) o[k] = Array.isArray(a[k][0]) ? a[k].map((c, i) => m(c, b[k][i])) : m(a[k], b[k]);
+  return o;
+}
+function hash(i, s = 0) { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); }
+
+/* ---------- じょうたい ---------- */
+let W = 0, H = 0, DPR = 1, M = 0, D = 80;
+const safe = { t: 0, r: 0, b: 0, l: 0 };
+const L = {}; // レイアウト
+const state = {
+  started: false, paused: false, time: 0, worldX: 0, speed: 0,
+  nuts: [], flying: [], parts: [], banner: null, nextSpawn: 1.0,
+  walkPhase: 0, walkerJump: 0, friendJump: {}, basketBounce: 0,
+  reward: null, rewardQueue: 0,
+  scene: Math.floor(save.total / 10) % 3, prevScene: Math.floor(save.total / 10) % 3, sceneMix: 1,
+  gearHold: null, lastTap: 0,
+};
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight; M = Math.min(W, H);
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  const cs = getComputedStyle($('#safe'));
+  safe.t = parseFloat(cs.paddingTop) || 0; safe.r = parseFloat(cs.paddingRight) || 0;
+  safe.b = parseFloat(cs.paddingBottom) || 0; safe.l = parseFloat(cs.paddingLeft) || 0;
+  D = Math.max(64, Math.min(M * 0.17, 140));
+  const portrait = H > W;
+  L.horizon = H * (portrait ? 0.5 : 0.46);
+  L.pathTop = H * (portrait ? 0.64 : 0.62);
+  L.pathBot = H * 0.93;
+  L.walkerX = W * (portrait ? 0.3 : 0.24);
+  L.walkerY = L.pathTop + (L.pathBot - L.pathTop) * 0.42;
+  L.pad = 14;
+  L.btn = Math.max(66, Math.min(M * 0.15, 110));
+  L.zukan = { x: safe.l + L.pad + L.btn / 2, y: safe.t + L.pad + L.btn / 2, r: L.btn / 2 };
+  L.basket = { w: L.btn * 2.0, h: L.btn };
+  L.basket.x = W - safe.r - L.pad - L.basket.w; L.basket.y = safe.t + L.pad;
+  L.basketTarget = { x: L.basket.x + L.basket.h * 0.55, y: L.basket.y + L.basket.h * 0.5 };
+  L.gear = { x: W - safe.r - 30, y: H - safe.b - 30, r: 22 };
+}
+
+/* ---------- どんぐりを置く ---------- */
+function spawnNut(x) {
+  const sp = pickSpecies();
+  const y = L.pathTop + (L.pathBot - L.pathTop) * (0.22 + Math.random() * 0.72);
+  const persp = 0.85 + 0.3 * (y - L.pathTop) / (L.pathBot - L.pathTop);
+  state.nuts.push({ sp, x: x ?? (W + D), y, s: sp.size * persp, phase: Math.random() * 10 });
+}
+function nutHit(n) { return Math.max(D * 0.62 * n.s, 52); }
+
+/* ---------- タップ ---------- */
+function onTap(px, py) {
+  audioInit();
+  if (!state.started || state.paused) return;
+  // ずかん
+  if (Math.hypot(px - L.zukan.x, py - L.zukan.y) < L.zukan.r + 8) { openZukan(); return; }
+  // かご
+  const b = L.basket;
+  if (px > b.x - 8 && px < b.x + b.w + 8 && py > b.y - 8 && py < b.y + b.h + 8) {
+    state.basketBounce = 1; SFX.plop(); speak(`${save.total}こ`); return;
+  }
+  // どんぐり（いちばん近いもの）
+  let best = null, bd = 1e9;
+  for (const n of state.nuts) {
+    const cy = n.y - D * 0.45 * n.s, d = Math.hypot(px - n.x, py - cy);
+    if (d < nutHit(n) && d < bd) { best = n; bd = d; }
+  }
+  if (best) { pickNut(best); return; }
+  // あるく子
+  if (Math.abs(px - L.walkerX) < D * 0.55 && py > L.walkerY - D * 1.4 && py < L.walkerY + 10) {
+    if (state.walkerJump <= 0) { state.walkerJump = 1; SFX.boing(); }
+    return;
+  }
+  // なかま
+  const fr = friendSlots();
+  for (const f of fr) {
+    if (Math.abs(px - f.x) < D * 0.45 && py > f.y - D * 1.0 && py < f.y + 10) {
+      if (!(state.friendJump[f.i] > 0)) { state.friendJump[f.i] = 1; SFX.boing(); }
+      return;
+    }
+  }
+  // なにもない所 → はっぱが舞う
+  SFX.rustle();
+  burst(px, py, 'leaf', 7);
+}
+function pickNut(n) {
+  state.nuts.splice(state.nuts.indexOf(n), 1);
+  SFX.pick();
+  if (n.sp.rare) SFX.sparkle();
+  burst(n.x, n.y - D * 0.45 * n.s, 'spark', n.sp.rare ? 14 : 7);
+  state.flying.push({ sp: n.sp, x0: n.x, y0: n.y - D * 0.45 * n.s, s: n.s, t: 0 });
+  state.banner = { sp: n.sp, t: 0 };
+  speak(n.sp.name);
+}
+function arrive(f) {
+  SFX.plop();
+  state.basketBounce = 1;
+  save.total++;
+  save.counts[f.sp.id] = (save.counts[f.sp.id] || 0) + 1;
+  if (save.total % 10 === 0) {
+    const ai = (save.total / 10 - 1) % ANIMALS.length;
+    save.friends.push(ai);
+    if (state.reward) state.rewardQueue++; else startReward(ai);
+  }
+  persist();
+}
+
+/* ---------- ごほうび ---------- */
+function startReward(ai) {
+  state.reward = { ai, t: 0, spoke: false, sceneChanged: false };
+  SFX.fanfare();
+  setTimeout(() => speak('やったー！', 0.9), 150);
+  for (let i = 0; i < 40; i++) burst(Math.random() * W, -20, 'confetti', 1);
+}
+function updateReward(dt) {
+  const r = state.reward; if (!r) return;
+  r.t += dt;
+  if (!r.spoke && r.t > 1.6) { r.spoke = true; speak(`${ANIMALS[r.ai].k}さんが きたよ！`); }
+  if (!r.sceneChanged && r.t > 3.2) {
+    r.sceneChanged = true;
+    state.prevScene = state.scene; state.scene = Math.floor(save.total / 10) % 3; state.sceneMix = 0;
+  }
+  if (r.t < 3 && Math.random() < dt * 8) burst(Math.random() * W, -20, 'confetti', 2);
+  if (r.t > 5) {
+    state.reward = null;
+    if (state.rewardQueue > 0) {
+      state.rewardQueue--;
+      startReward(save.friends[save.friends.length - 1 - state.rewardQueue]);
+    }
+  }
+}
+
+/* ---------- つぶつぶ ---------- */
+function burst(x, y, type, n) {
+  const P = curPal;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = (type === 'confetti' ? 60 : 160) + Math.random() * 220;
+    state.parts.push({
+      type, x, y, vx: Math.cos(a) * v * (type === 'confetti' ? 0.6 : 1), vy: type === 'confetti' ? 80 + Math.random() * 120 : Math.sin(a) * v - 120,
+      rot: Math.random() * 6, vr: (Math.random() - 0.5) * 10, life: 0, max: type === 'confetti' ? 4 : 0.9 + Math.random() * 0.5,
+      size: (type === 'spark' ? 0.11 : 0.13) * D * (0.6 + Math.random() * 0.6),
+      color: type === 'leaf' ? P.leaf[i % 3] : type === 'confetti' ? ['#f5c542', '#e8604c', '#5aa845', '#4aa3e0', '#e07b2e'][i % 5] : '#fff6a0',
+      sp: type === 'confetti' && Math.random() < 0.3 ? SPECIES[Math.floor(Math.random() * SPECIES.length)] : null,
+    });
+  }
+}
+
+/* ---------- なかまの位置 ---------- */
+function friendSlots() {
+  const gap = D * 0.72, out = [];
+  const perRow = Math.max(1, Math.floor((L.walkerX - D * 0.3) / gap));
+  const show = save.friends.slice(-perRow * 2).reverse(); // 新しい子が近く
+  show.forEach((ai, k) => {
+    const row = k % 2, col = Math.floor(k / 2);
+    out.push({ i: save.friends.length - 1 - k, ai, x: L.walkerX - gap * (col + 1) + (row ? gap * 0.4 : 0), y: L.walkerY + (row ? -D * 0.28 : D * 0.18) });
+  });
+  return out;
+}
+
+/* ---------- 更新 ---------- */
+function update(dt) {
+  state.time += dt;
+  const target = state.started && !state.paused && !state.reward ? M * 0.12 * settings.speed : (state.started ? 0 : M * 0.05);
+  state.speed += (target - state.speed) * Math.min(1, dt * 2.5);
+  const dx = state.speed * dt;
+  state.worldX += dx;
+  state.walkPhase += dx / (D * 0.35);
+  for (const n of state.nuts) n.x -= dx;
+  state.nuts = state.nuts.filter(n => n.x > -D * 2);
+
+  if (state.started && !state.reward) {
+    state.nextSpawn -= dt;
+    if (state.nextSpawn <= 0) {
+      const last = state.nuts[state.nuts.length - 1];
+      if (!last || last.x < W - D * 0.6) spawnNut();
+      state.nextSpawn = (2.0 + Math.random() * 2.2) / settings.density / Math.max(0.5, settings.speed);
+    }
+  }
+
+  for (const f of state.flying) {
+    f.t += dt / 0.75;
+    if (f.t >= 1 && !f.done) { f.done = true; arrive(f); }
+  }
+  state.flying = state.flying.filter(f => !f.done);
+
+  for (const p of state.parts) {
+    p.life += dt;
+    if (p.type === 'confetti') { p.vy = Math.min(p.vy + 40 * dt, 160); p.vx += Math.sin(state.time * 3 + p.rot) * 30 * dt; }
+    else if (p.type === 'leaf') { p.vy += 380 * dt; p.vx *= 0.97; }
+    else { p.vy += 200 * dt; p.vx *= 0.94; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+  }
+  state.parts = state.parts.filter(p => p.life < p.max && p.y < H + 40);
+
+  if (state.banner) { state.banner.t += dt; if (state.banner.t > 2.4) state.banner = null; }
+  if (state.walkerJump > 0) state.walkerJump = Math.max(0, state.walkerJump - dt * 1.8);
+  for (const k in state.friendJump) state.friendJump[k] = Math.max(0, state.friendJump[k] - dt * 1.8);
+  state.basketBounce = Math.max(0, state.basketBounce - dt * 3);
+  if (state.sceneMix < 1) state.sceneMix = Math.min(1, state.sceneMix + dt / 2.5);
+  updateReward(dt);
+
+  // めだつように時々きらっ
+  for (const n of state.nuts) {
+    if (Math.random() < dt * (n.sp.rare ? 2.5 : 0.5)) burst(n.x + (Math.random() - 0.5) * D * 0.4, n.y - D * 0.7 * n.s, 'spark', 1);
+  }
+}
+
+/* ---------- 描画 ---------- */
+let curPal = mixPalette(PALETTES[state.scene], PALETTES[state.scene], 1);
+function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+function emoji(e, x, y, size, flip = true) {
+  ctx.save(); ctx.translate(x, y); if (flip) ctx.scale(-1, 1);
+  ctx.fillStyle = '#000'; // 影の半透明色が絵文字にうつらないように
+  ctx.font = `${size}px ${EMOJI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(e, 0, 0); ctx.restore();
+}
+function drawNutImg(sp, x, yBottom, s, rot = 0) {
+  if (!sp.img) return;
+  const h = D * s, w = h * 100 / 140;
+  ctx.save(); ctx.translate(x, yBottom - h * 0.12); ctx.rotate(rot);
+  ctx.drawImage(sp.img, -w / 2, -h * 0.88, w, h); ctx.restore();
+}
+function drawHills(par, baseY, amp, freq, color, seed) {
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, H);
+  const off = state.worldX * par;
+  for (let x = 0; x <= W + 24; x += 24) {
+    const wx = (x + off) / M;
+    ctx.lineTo(x, baseY - amp * (0.6 + 0.4 * Math.sin(wx * freq + seed) + 0.25 * Math.sin(wx * freq * 2.3 + seed * 2)));
+  }
+  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+}
+function drawTree(x, baseY, s, h, P) {
+  const conifer = state.scene === 1 && h > 0.6;
+  ctx.fillStyle = P.trunk;
+  ctx.fillRect(x - s * 0.06, baseY - s * 0.55, s * 0.12, s * 0.56);
+  ctx.fillStyle = P.crowns[Math.floor(h * 97) % 3];
+  if (conifer) {
+    for (let k = 0; k < 3; k++) {
+      const y = baseY - s * (0.35 + k * 0.28), w = s * (0.42 - k * 0.1);
+      ctx.beginPath(); ctx.moveTo(x - w, y); ctx.lineTo(x + w, y); ctx.lineTo(x, y - s * 0.45); ctx.closePath(); ctx.fill();
+    }
+  } else {
+    circle(x, baseY - s * 0.72, s * 0.32); circle(x - s * 0.24, baseY - s * 0.55, s * 0.23); circle(x + s * 0.24, baseY - s * 0.57, s * 0.25);
+    ctx.fillStyle = 'rgba(255,255,255,.13)'; circle(x - s * 0.1, baseY - s * 0.82, s * 0.13);
+  }
+}
+function drawDecor(P) {
+  const sp = M * 0.09, i0 = Math.floor(state.worldX / sp) - 1, i1 = i0 + Math.ceil(W / sp) + 3;
+  for (let i = i0; i < i1; i++) {
+    const x = i * sp - state.worldX + hash(i, 1) * sp, r = hash(i, 2), t = hash(i, 3), sz = M * 0.025 * (0.7 + hash(i, 4) * 0.8);
+    let y;
+    if (r < 0.45) y = L.horizon + (L.pathTop - L.horizon) * (0.25 + hash(i, 5) * 0.7);
+    else if (r < 0.7) y = L.pathBot + 6 + (H - L.pathBot - 10) * hash(i, 5);
+    else {
+      y = L.pathTop + (L.pathBot - L.pathTop) * hash(i, 5);
+      ctx.fillStyle = t < 0.5 ? 'rgba(120,100,70,.35)' : P.leaf[Math.floor(t * 9) % 3];
+      ctx.beginPath(); ctx.ellipse(x, y, sz * 0.6, sz * 0.35, t * 3, 0, Math.PI * 2); ctx.fill();
+      continue;
+    }
+    if (t < 0.55) { // 草
+      ctx.strokeStyle = P.crowns[2]; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let k = -1; k <= 1; k++) { ctx.moveTo(x + k * sz * 0.3, y); ctx.quadraticCurveTo(x + k * sz * 0.5, y - sz, x + k * sz * 0.9, y - sz * 1.4); }
+      ctx.stroke();
+    } else if (t < 0.75) { // 花
+      ctx.fillStyle = ['#fff', '#f7d24a', '#f29ab8'][Math.floor(t * 30) % 3];
+      for (let k = 0; k < 5; k++) circle(x + Math.cos(k * 1.26) * sz * 0.35, y - sz + Math.sin(k * 1.26) * sz * 0.35, sz * 0.25);
+      ctx.fillStyle = '#e8a33a'; circle(x, y - sz, sz * 0.2);
+    } else if (t < 0.9) { // 石
+      ctx.fillStyle = '#a9a39a'; ctx.beginPath(); ctx.ellipse(x, y, sz * 0.7, sz * 0.45, 0, Math.PI, 0); ctx.fill();
+    } else { // きのこ
+      ctx.fillStyle = '#f3ead8'; ctx.fillRect(x - sz * 0.15, y - sz * 0.7, sz * 0.3, sz * 0.7);
+      ctx.fillStyle = '#d9533c'; ctx.beginPath(); ctx.ellipse(x, y - sz * 0.7, sz * 0.55, sz * 0.4, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = '#fff'; circle(x - sz * 0.2, y - sz * 0.85, sz * 0.08); circle(x + sz * 0.18, y - sz * 0.8, sz * 0.07);
+    }
+  }
+}
+
+function draw() {
+  const P = curPal = mixPalette(PALETTES[state.prevScene], PALETTES[state.scene], state.sceneMix);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g = ctx.createLinearGradient(0, 0, 0, L.horizon);
+  g.addColorStop(0, P.sky1); g.addColorStop(1, P.sky2);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  // たいよう・くも
+  ctx.fillStyle = 'rgba(255,240,170,.9)'; circle(W * 0.72, H * 0.17, M * 0.07);
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  for (let c = 0; c < 4; c++) {
+    const span = W + M * 0.8, x = ((c * span / 4 - state.worldX * 0.05 - state.time * 6) % span + span) % span - M * 0.4, y = H * (0.1 + 0.08 * (c % 3)), s = M * (0.06 + 0.02 * (c % 2));
+    circle(x, y, s); circle(x + s, y + s * 0.2, s * 0.8); circle(x - s, y + s * 0.25, s * 0.7);
+  }
+  drawHills(0.12, L.horizon, M * 0.18, 2.1, P.hill1, 1);
+  drawHills(0.28, L.horizon + M * 0.02, M * 0.1, 3.3, P.hill2, 4);
+
+  // 木
+  const tsp = M * 0.3, par = 0.6, off = state.worldX * par;
+  const t0 = Math.floor(off / tsp) - 1, t1 = t0 + Math.ceil(W / tsp) + 3;
+  for (let i = t0; i < t1; i++) {
+    const h = hash(i, 9); if (h < 0.22) continue;
+    drawTree(i * tsp - off + hash(i, 8) * tsp * 0.5, L.horizon + M * 0.03, M * (0.28 + 0.2 * hash(i, 7)), h, P);
+  }
+  // じめん・みち
+  ctx.fillStyle = P.ground; ctx.fillRect(0, L.horizon + M * 0.02, W, H);
+  ctx.fillStyle = P.edge; ctx.fillRect(0, L.pathTop - 5, W, L.pathBot - L.pathTop + 10);
+  ctx.fillStyle = P.path; ctx.fillRect(0, L.pathTop, W, L.pathBot - L.pathTop);
+  drawDecor(P);
+
+  // 奥から順に
+  const items = [];
+  for (const n of state.nuts) items.push({ y: n.y, f: () => {
+    const hop = Math.pow(Math.max(0, Math.sin(state.time * 2.4 + n.phase)), 12) * D * 0.12;
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(n.x, n.y, D * 0.24 * n.s * (1 - hop / D), D * 0.06 * n.s, 0, 0, Math.PI * 2); ctx.fill();
+    drawNutImg(n.sp, n.x, n.y - hop, n.s, Math.sin(state.time * 3 + n.phase) * 0.1);
+  } });
+  const bob = Math.abs(Math.sin(state.walkPhase)) * D * 0.06 * Math.min(1, state.speed / (M * 0.05));
+  items.push({ y: L.walkerY, f: () => {
+    const j = Math.sin(state.walkerJump * Math.PI) * D * 0.6;
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(L.walkerX, L.walkerY, D * 0.35, D * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+    emoji('🚶', L.walkerX, L.walkerY - D * 0.62 - bob - j, D * 1.25);
+    emoji('🧺', L.walkerX + D * 0.3, L.walkerY - D * 0.42 - bob - j, D * 0.42, false);
+  } });
+  for (const f of friendSlots()) items.push({ y: f.y, f: () => {
+    const j = Math.sin((state.friendJump[f.i] || 0) * Math.PI) * D * 0.5;
+    const b = Math.abs(Math.sin(state.walkPhase + f.i * 1.3)) * D * 0.08 * Math.min(1, state.speed / (M * 0.05));
+    ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.beginPath(); ctx.ellipse(f.x, f.y, D * 0.25, D * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+    emoji(ANIMALS[f.ai].e, f.x, f.y - D * 0.38 - b - j, D * 0.78);
+  } });
+  const r = state.reward;
+  if (r) {
+    let ax, ay = L.walkerY - D * 0.1, hop = 0;
+    const cx = W * 0.62;
+    if (r.t < 1.2) ax = W + D - (W + D - cx) * (r.t / 1.2);
+    else if (r.t < 3.6) { ax = cx; hop = Math.abs(Math.sin((r.t - 1.2) * 5)) * D * 0.5; }
+    else { const f = Math.min(1, (r.t - 3.6) / 1.2); ax = cx + (L.walkerX - D * 0.7 - cx) * f; hop = Math.abs(Math.sin(r.t * 10)) * D * 0.15; }
+    items.push({ y: ay, f: () => emoji(ANIMALS[r.ai].e, ax, ay - D * 0.6 - hop, D * 1.3) });
+  }
+  items.sort((a, b) => a.y - b.y).forEach(it => it.f());
+
+  // とんでいくどんぐり
+  for (const f of state.flying) {
+    const t = Math.min(1, f.t), e = 1 - Math.pow(1 - t, 2);
+    const x = f.x0 + (L.basketTarget.x - f.x0) * e;
+    const y = f.y0 + (L.basketTarget.y - f.y0) * e - Math.sin(Math.PI * t) * H * 0.18;
+    const s = (t < 0.2 ? 1 + t / 0.2 * 0.6 : 1.6 - (t - 0.2) / 0.8 * 1.2) * f.s;
+    drawNutImg(f.sp, x, y + D * 0.45 * s, s, t * 6);
+  }
+  // つぶつぶ
+  for (const p of state.parts) {
+    const a = 1 - Math.max(0, (p.life - p.max * 0.6) / (p.max * 0.4));
+    ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    if (p.sp) { ctx.restore(); ctx.save(); ctx.globalAlpha = Math.max(0, a); drawNutImg(p.sp, p.x, p.y, 0.45, p.rot); }
+    else if (p.type === 'spark') {
+      ctx.fillStyle = p.color; ctx.beginPath();
+      for (let k = 0; k < 8; k++) { const rr = k % 2 ? p.size * 0.35 : p.size; ctx.lineTo(Math.cos(k * Math.PI / 4) * rr, Math.sin(k * Math.PI / 4) * rr); }
+      ctx.closePath(); ctx.fill();
+    } else if (p.type === 'leaf') {
+      ctx.fillStyle = p.color; ctx.beginPath(); ctx.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+    } else { ctx.fillStyle = p.color; ctx.fillRect(-p.size * 0.4, -p.size * 0.25, p.size * 0.8, p.size * 0.5); }
+    ctx.restore();
+  }
+
+  drawUI();
+}
+
+function drawUI() {
+  // ずかんボタン
+  const z = L.zukan;
+  ctx.fillStyle = 'rgba(0,0,0,.15)'; circle(z.x, z.y + 4, z.r);
+  ctx.fillStyle = '#fff'; circle(z.x, z.y, z.r);
+  emoji('📖', z.x, z.y + 2, z.r * 1.1, false);
+
+  // かご
+  const b = L.basket, bb = Math.sin(state.basketBounce * Math.PI) * 0.15;
+  ctx.save(); ctx.translate(b.x + b.w / 2, b.y + b.h / 2); ctx.scale(1 + bb, 1 + bb);
+  ctx.fillStyle = 'rgba(0,0,0,.15)'; rrect(-b.w / 2, -b.h / 2 + 4, b.w, b.h, b.h / 2); ctx.fill();
+  ctx.fillStyle = '#fff'; rrect(-b.w / 2, -b.h / 2, b.w, b.h, b.h / 2); ctx.fill();
+  emoji('🧺', -b.w / 2 + b.h * 0.55, 2, b.h * 0.62, false);
+  ctx.font = `bold ${b.h * 0.52}px "Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#6b3a17';
+  ctx.fillText(String(save.total), b.h * 0.45, 3);
+  ctx.restore();
+
+  // なまえ
+  const bn = state.banner;
+  if (bn && !state.reward) {
+    const t = bn.t, sc = t < 0.25 ? 0.5 + 0.5 * Math.sin(t / 0.25 * Math.PI / 2) * 1.1 : 1, al = t > 2 ? 1 - (t - 2) / 0.4 : 1;
+    const fs = Math.max(34, Math.min(M * 0.1, 80));
+    ctx.font = `bold ${fs}px "Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif`;
+    const tw = ctx.measureText(bn.sp.kana).width, iw = fs * 1.1, w = tw + iw + fs * 1.0, h = fs * 1.7;
+    ctx.save(); ctx.globalAlpha = Math.max(0, al); ctx.translate(W / 2, Math.max(H * 0.3, safe.t + L.btn + L.pad * 2 + h / 2)); ctx.scale(sc, sc);
+    ctx.fillStyle = bn.sp.rare ? '#fff3b0' : '#fff'; rrect(-w / 2, -h / 2, w, h, h / 2); ctx.fill();
+    ctx.strokeStyle = bn.sp.rare ? '#f0a830' : '#e9cf9c'; ctx.lineWidth = 5; ctx.stroke();
+    drawNutImg(bn.sp, -w / 2 + fs * 0.5 + iw / 2, h * 0.36, 1.25 * h / D * 0.62, 0);
+    ctx.fillStyle = '#6b3a17'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(bn.sp.kana, -w / 2 + fs * 0.6 + iw, 2);
+    ctx.restore();
+  }
+
+  // やったー
+  const r = state.reward;
+  if (r && r.t < 4.2) {
+    const sc = r.t < 0.4 ? r.t / 0.4 : 1 + Math.sin(r.t * 4) * 0.04, al = r.t > 3.7 ? 1 - (r.t - 3.7) / 0.5 : 1;
+    const fs = Math.max(48, Math.min(M * 0.16, 140));
+    ctx.save(); ctx.globalAlpha = Math.max(0, al); ctx.translate(W / 2, H * 0.3); ctx.scale(sc, sc);
+    ctx.font = `bold ${fs}px "Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    ctx.lineWidth = fs * 0.16; ctx.strokeStyle = '#fff'; ctx.strokeText('やったー！', 0, 0);
+    ctx.fillStyle = '#e8604c'; ctx.fillText('やったー！', 0, 0);
+    ctx.restore();
+  }
+
+  // せってい（おとなよう・長押し）
+  const gr = L.gear;
+  ctx.globalAlpha = 0.35; emoji('⚙️', gr.x, gr.y, 26, false); ctx.globalAlpha = 1;
+  if (state.gearHold) {
+    const f = Math.min(1, (performance.now() - state.gearHold.t0) / 1500);
+    ctx.strokeStyle = '#f0a830'; ctx.lineWidth = 5; ctx.beginPath();
+    ctx.arc(gr.x, gr.y, gr.r + 6, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); ctx.stroke();
+  }
+}
+
+/* ---------- ループ ---------- */
+let lastT = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  if (!document.hidden) { update(dt); draw(); }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- 入力 ---------- */
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const gr = L.gear;
+  if (Math.hypot(e.clientX - gr.x, e.clientY - gr.y) < gr.r + 14) {
+    const id = e.pointerId;
+    state.gearHold = { id, t0: performance.now(), timer: setTimeout(() => { state.gearHold = null; openSettings(); }, 1500) };
+    return;
+  }
+  onTap(e.clientX, e.clientY);
+});
+const endHold = e => { if (state.gearHold && state.gearHold.id === e.pointerId) { clearTimeout(state.gearHold.timer); state.gearHold = null; } };
+cv.addEventListener('pointerup', endHold);
+cv.addEventListener('pointercancel', endHold);
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('dblclick', e => e.preventDefault());
+
+$('#start').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  audioInit();
+  $('#start').classList.add('hidden');
+  state.started = true;
+  state.nextSpawn = 0.3;
+  // 最初から少し置いておく
+  if (!state.nuts.length) { spawnNut(W * 0.62); spawnNut(W * 0.9); }
+  SFX.sparkle();
+  speak('おさんぽ いこう！', 0.9);
+});
+
+/* ---------- ずかん ---------- */
+function openZukan() {
+  state.paused = true;
+  const grid = $('#zgrid'); grid.innerHTML = '';
+  for (const sp of SPECIES) {
+    const n = save.counts[sp.id] || 0, c = document.createElement('button');
+    c.className = 'card' + (n ? '' : ' no');
+    c.innerHTML = `<img src="${sp.url}" alt=""><div class="nm">${n ? sp.kana : '？'}</div><div class="ct">${n ? n + 'こ' : ''}</div>`;
+    c.addEventListener('click', () => {
+      audioInit(); c.classList.remove('wig'); void c.offsetWidth; c.classList.add('wig');
+      if (n) { SFX.pick(); speak(sp.name); } else { SFX.boing(); speak('まだ みつけてないよ'); }
+    });
+    grid.appendChild(c);
+  }
+  const fr = $('#zfriends');
+  fr.innerHTML = save.friends.length ? `<span class="lb">なかま</span>${save.friends.map(i => ANIMALS[i].e).join(' ')}` : '';
+  $('#zukan').classList.remove('hidden');
+  SFX.plop();
+}
+$('#zclose').addEventListener('click', () => { $('#zukan').classList.add('hidden'); state.paused = false; SFX.plop(); });
+
+/* ---------- せってい ---------- */
+function syncSettingsUI() {
+  document.querySelectorAll('.seg').forEach(seg => {
+    const k = seg.dataset.key;
+    seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', String(settings[k]) === b.dataset.v));
+  });
+}
+document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const v = b.dataset.v, k = seg.dataset.key;
+  settings[k] = v === 'true' ? true : v === 'false' ? false : parseFloat(v);
+  store.set(SET_KEY, settings); syncSettingsUI();
+}));
+function openSettings() { state.paused = true; syncSettingsUI(); $('#settings').classList.remove('hidden'); }
+$('#sclose').addEventListener('click', () => { $('#settings').classList.add('hidden'); state.paused = false; });
+$('#sreset').addEventListener('click', () => {
+  if (!confirm('あつめた どんぐりと なかまの きろくを ぜんぶ けしますか？')) return;
+  save.counts = {}; save.total = 0; save.friends = []; persist();
+  state.scene = state.prevScene = 0; state.sceneMix = 1;
+});
+
+/* ---------- はじまり ---------- */
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+document.addEventListener('visibilitychange', () => { lastT = performance.now(); });
+resize();
+loadImages().then(() => {
+  $('#startImg').src = SPECIES[0].url;
+  requestAnimationFrame(frame);
+});
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+window.__dg = { state, save, settings, SPECIES, spawnNut, pickNut, L: () => L };
+</script>
+</body>
+</html>
