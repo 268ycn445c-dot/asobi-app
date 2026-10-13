@@ -39,11 +39,13 @@
   .bigx{width:clamp(64px,13vmin,96px);height:clamp(64px,13vmin,96px);border-radius:50%;border:none;background:#e8604c;color:#fff;
     font-size:clamp(32px,7vmin,52px);box-shadow:0 5px 0 #b13e2d;flex:none}
   .bigx:active{transform:translateY(4px);box-shadow:0 1px 0 #b13e2d}
-  #zgrid{width:100%;max-width:980px;display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:14px;margin-top:14px}
+  .zsub{width:100%;max-width:980px;margin-top:18px;font-size:clamp(22px,4.5vmin,34px);font-weight:bold;color:#9a7448}
+  #zgrid,#zgrid2{width:100%;max-width:980px;display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:14px;margin-top:8px}
   .card{background:#fff;border:4px solid #e9cf9c;border-radius:22px;padding:10px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:4px}
   .card img{height:clamp(90px,16vmin,140px)}
   .card.no img{filter:brightness(0);opacity:.16}
   .card .nm{font-size:clamp(20px,3.6vmin,30px);font-weight:bold;white-space:nowrap}
+  .card .nm.long{font-size:clamp(15px,2.7vmin,22px)}
   .card .ct{font-size:clamp(16px,3.2vmin,22px);color:#9a7448}
   .card.wig{animation:wig .5s}
   @keyframes wig{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg) scale(1.05)}75%{transform:rotate(6deg) scale(1.05)}}
@@ -77,8 +79,11 @@
 </div>
 
 <div id="zukan" class="ov hidden">
-  <div class="zhead"><div class="ztitle">📖 どんぐり ずかん</div><button class="bigx" id="zclose" aria-label="とじる">✕</button></div>
+  <div class="zhead"><div class="ztitle">📖 ずかん</div><button class="bigx" id="zclose" aria-label="とじる">✕</button></div>
+  <div class="zsub">どんぐり</div>
   <div id="zgrid"></div>
+  <div class="zsub">くも</div>
+  <div id="zgrid2" class="zgrid"></div>
   <div id="zfriends"></div>
 </div>
 
@@ -109,7 +114,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 };
 const SAVE_KEY = 'donguri-save-v1', SET_KEY = 'donguri-settings-v1';
-const save = Object.assign({ counts: {}, total: 0, friends: [] }, store.get(SAVE_KEY, {}));
+const save = Object.assign({ counts: {}, total: 0, friends: [], spiders: {}, spiderTotal: 0 }, store.get(SAVE_KEY, {}));
 const settings = Object.assign({ voice: true, sfx: true, speed: 1, density: 1 }, store.get(SET_KEY, {}));
 const persist = () => store.set(SAVE_KEY, save);
 
@@ -204,6 +209,52 @@ const SPECIES = [
   { id: 'kashiwa', name: 'カシワ', kana: 'かしわ', weight: 2, size: 1.1, rare: true,
     svg: () => nutSVG('ka', 50, 90, 28, 29, '#c08347', '#74431b', 4) + capSVG('ka', { yb: 74, vis: 24, w: 72, col: '#c4a676', dark: '#8a6f45', type: 'shaggy', len: 19, long: true }) },
 ];
+/* ---------- クモの絵（SVG・こわくない丸い顔） ----------
+   viewBox はどんぐりと同じ 100x140。クモの中心は (50,80)。 */
+function spiderSVG(id, o) {
+  const { rx, ry, base, legs, band, pat } = o, ay = 80 + 4 + ry * 0.55;
+  let legsSvg = '';
+  for (const sd of [-1, 1]) for (let k = 0; k < 4; k++) {
+    const by = 66 + k * 6, kx = 50 + sd * (26 + k * 2), ky = by - 16 + k * 10, fx = 50 + sd * (40 - Math.abs(k - 1.5) * 2), fy = by + 2 + k * 12;
+    legsSvg += `<polyline points="${50 + sd * 8},${by} ${kx},${ky} ${fx},${fy}" fill="none" stroke="${legs}" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    if (band) legsSvg += `<circle cx="${kx}" cy="${ky}" r="2.6" fill="${band}"/>`;
+  }
+  let p = '';
+  const clip = `<clipPath id="a${id}"><ellipse cx="50" cy="${ay}" rx="${rx}" ry="${ry}"/></clipPath>`;
+  if (pat === 'stripes') for (let y = ay - ry; y < ay + ry; y += o.step) p += `<rect x="0" y="${y}" width="100" height="${o.step * 0.45}" fill="${o.c2}"/>`;
+  if (pat === 'stripes3') for (let y = ay - ry, i = 0; y < ay + ry; y += o.step, i++) p += `<rect x="0" y="${y}" width="100" height="${o.step * 0.5}" fill="${i % 2 ? o.c3 : o.c2}"/>`;
+  if (pat === 'leaf') p = `<path d="M50 ${ay - ry + 4} L${50 - rx * 0.7} ${ay + ry * 0.2} L50 ${ay + ry - 3} L${50 + rx * 0.7} ${ay + ry * 0.2} Z" fill="${o.c2}"/><path d="M50 ${ay - ry + 10} L${50 - rx * 0.4} ${ay + ry * 0.1} L50 ${ay + ry - 10} L${50 + rx * 0.4} ${ay + ry * 0.1} Z" fill="${base}"/>`;
+  if (pat === 'dots') for (const [dx, dy] of [[-6, -6], [6, -4], [-4, 5], [5, 7], [0, -1]]) p += `<circle cx="${50 + dx}" cy="${ay + dy}" r="2.2" fill="${o.c2}"/>`;
+  if (o.red) p += `<ellipse cx="50" cy="${ay + ry - 4}" rx="${rx * 0.5}" ry="5" fill="#d8402f"/>`;
+  return `<defs>${clip}</defs>${legsSvg}
+  <ellipse cx="50" cy="${ay}" rx="${rx}" ry="${ry}" fill="${base}"/>
+  <g clip-path="url(#a${id})">${p}</g>
+  <ellipse cx="50" cy="${ay}" rx="${rx}" ry="${ry}" fill="none" stroke="#2a2018" stroke-width="2"/>
+  <ellipse cx="${50 - rx * 0.35}" cy="${ay - ry * 0.45}" rx="${rx * 0.2}" ry="${ry * 0.15}" fill="#fff" opacity=".35"/>
+  <ellipse cx="50" cy="68" rx="15" ry="13" fill="${o.head || '#3a2c22'}" stroke="#2a2018" stroke-width="2"/>
+  <circle cx="44" cy="66" r="5.2" fill="#fff"/><circle cx="56" cy="66" r="5.2" fill="#fff"/>
+  <circle cx="45" cy="67" r="2.8" fill="#111"/><circle cx="57" cy="67" r="2.8" fill="#111"/>
+  <circle cx="44" cy="65.6" r="1" fill="#fff"/><circle cx="56" cy="65.6" r="1" fill="#fff"/>
+  <path d="M46 73 Q50 76 54 73" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>`;
+}
+const SPIDERS = [
+  { id: 'jorou', name: 'ジョロウグモ', kana: 'じょろうぐも', weight: 30, size: 1.0, deco: null,
+    svg: () => spiderSVG('jo', { rx: 13, ry: 22, base: '#f2c230', pat: 'stripes', c2: '#2f5f5a', step: 7, red: true, legs: '#2a2018', band: '#f2c230' }) },
+  { id: 'kogane', name: 'コガネグモ', kana: 'こがねぐも', weight: 25, size: 1.05, deco: 'x',
+    svg: () => spiderSVG('kg', { rx: 18, ry: 18, base: '#f3c623', pat: 'stripes', c2: '#2a2018', step: 8, legs: '#2a2018', band: '#f3c623' }) },
+  { id: 'nagakogane', name: 'ナガコガネグモ', kana: 'ながこがねぐも', weight: 20, size: 1.0, deco: 'zig',
+    svg: () => spiderSVG('ng', { rx: 11, ry: 22, base: '#fbf3d0', pat: 'stripes3', c2: '#2a2018', c3: '#f3c623', step: 5, legs: '#6b5a3a', band: '#f3c623', head: '#d8d2b8' }) },
+  { id: 'oni', name: 'オニグモ', kana: 'おにぐも', weight: 18, size: 1.1, deco: null,
+    svg: () => spiderSVG('on', { rx: 20, ry: 18, base: '#9a6638', pat: 'leaf', c2: '#5e3a1e', legs: '#5e3a1e', band: '#b98a5a' }) },
+  { id: 'ginmekki', name: 'ギンメッキゴミグモ', kana: 'ぎんめっきごみぐも', weight: 7, size: 0.85, deco: 'zig', rare: true,
+    svg: () => spiderSVG('gm', { rx: 13, ry: 13, base: '#e3e8ee', pat: 'dots', c2: '#8d96a0', legs: '#5a5f66', head: '#5a5f66' }) },
+];
+function pickSpider() {
+  let r = Math.random() * SPIDERS.reduce((a, s) => a + s.weight, 0);
+  for (const s of SPIDERS) { if ((r -= s.weight) < 0) return s; }
+  return SPIDERS[0];
+}
+
 const ANIMALS = [
   { e: '🐿️', k: 'りす' }, { e: '🐰', k: 'うさぎ' }, { e: '🦔', k: 'はりねずみ' }, { e: '🦝', k: 'たぬき' },
   { e: '🦊', k: 'きつね' }, { e: '🐻', k: 'くま' }, { e: '🦉', k: 'ふくろう' }, { e: '🐗', k: 'いのしし' },
@@ -211,7 +262,7 @@ const ANIMALS = [
 const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
 
 function loadImages() {
-  return Promise.all(SPECIES.map(sp => new Promise(res => {
+  return Promise.all(SPECIES.concat(SPIDERS).map(sp => new Promise(res => {
     sp.url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(wrap(sp.svg()));
     const img = new Image();
     img.onload = () => { sp.img = img; res(); };
@@ -253,6 +304,7 @@ const SFX = {
   plop() { tone('triangle', 340, 170, 0.16, 0.28); },
   rustle() { noise(0.28, 2600, 0.35); },
   boing() { tone('sine', 220, 520, 0.22, 0.28); },
+  boyon() { tone('sine', 300, 180, 0.12, 0.25); tone('sine', 260, 420, 0.18, 0.2, 0.1); },
   sparkle() { [1568, 2093, 2637].forEach((f, i) => tone('sine', f, f * 1.01, 0.18, 0.12, i * 0.07)); },
   fanfare() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone('triangle', f, f, i === 5 ? 0.5 : 0.16, 0.25, i * 0.13)); },
 };
@@ -303,7 +355,7 @@ const safe = { t: 0, r: 0, b: 0, l: 0 };
 const L = {};
 const state = {
   started: false, paused: false, time: 0, camZ: 0, speed: 0,
-  nuts: [], trees: [], decos: [], nutZ: 6, treeZ: 2, decoZ: 2,
+  nuts: [], trees: [], decos: [], webs: [], nutZ: 6, treeZ: 2, decoZ: 2, webZ: 9,
   flying: [], parts: [], banner: null,
   walkPhase: 0, friendJump: {}, basketBounce: 0,
   reward: null, rewardQueue: 0,
@@ -327,6 +379,9 @@ function resize() {
   L.basket = { w: L.btn * 2.0, h: L.btn };
   L.basket.x = W - safe.r - L.pad - L.basket.w; L.basket.y = safe.t + L.pad;
   L.basketTarget = { x: L.basket.x + L.basket.h * 0.55, y: L.basket.y + L.basket.h * 0.5 };
+  L.spiderBox = { w: L.basket.w * 0.8, h: L.basket.h * 0.8 };
+  L.spiderBox.x = W - safe.r - L.pad - L.spiderBox.w; L.spiderBox.y = L.basket.y + L.basket.h + 10;
+  L.spiderTarget = { x: L.spiderBox.x + L.spiderBox.h * 0.55, y: L.spiderBox.y + L.spiderBox.h * 0.5 };
   L.gear = { x: W - safe.r - 30, y: H - safe.b - 30, r: 22 };
   // どんぐりを置く横はば：4〜5m先で画面に入るくらい
   L.xRange = Math.max(0.55, Math.min(2.2, 0.8 * (W / 2) * 5 / F));
@@ -358,9 +413,15 @@ function genWorld() {
     state.decos.push({ x, z, onRoad, t: Math.random(), size: rnd(0.12, 0.3) });
     state.decoZ += rnd(0.12, 0.6);
   }
+  while (state.webZ < zMax) {
+    const z = state.webZ, side = Math.random() < 0.5 ? -1 : 1;
+    const off = Math.max(0.45, Math.min(2.4, L.xRange * rnd(0.7, 1.15)));
+    state.webs.push({ x: roadCenter(z) + side * off, z, hgt: rnd(0.75, 1.15), r: rnd(0.3, 0.42), rot: Math.random(), sp: pickSpider(), wob: 0, phase: Math.random() * 10, sx: -999, sy: -999, sr: 0 });
+    state.webZ += rnd(6, 15);
+  }
   const keep = o => o.z - state.camZ > 1.0;
-  state.trees = state.trees.filter(keep); state.decos = state.decos.filter(keep);
-  state.nuts = state.nuts.filter(n => n.z - state.camZ > NEAR - 0.3);
+  state.trees = state.trees.filter(keep); state.decos = state.decos.filter(keep); state.webs = state.webs.filter(keep);
+  state.nuts = state.nuts.filter(n => n.z - state.camZ > NEAR - 0.1);
 }
 function addNut(x, z, sp) { state.nuts.push({ sp, x, z, phase: Math.random() * 10, sx: -999, sy: -999, ph: 0 }); }
 
@@ -373,6 +434,10 @@ function onTap(px, py) {
   if (px > b.x - 8 && px < b.x + b.w + 8 && py > b.y - 8 && py < b.y + b.h + 8) {
     state.basketBounce = 1; SFX.plop(); speak(`${save.total}こ`); return;
   }
+  const sb = L.spiderBox;
+  if (save.spiderTotal > 0 && px > sb.x - 8 && px < sb.x + sb.w + 8 && py > sb.y - 4 && py < sb.y + sb.h + 8) {
+    state.spiderBounce = 1; SFX.boyon(); speak(`くも ${save.spiderTotal}ひき`); return;
+  }
   // どんぐり：近い（大きい）ものを優先
   let best = null, bd = 1e9;
   for (const n of state.nuts) {
@@ -381,6 +446,15 @@ function onTap(px, py) {
     if (d < r && d / r < bd) { best = n; bd = d / r; }
   }
   if (best) { pickNut(best); return; }
+  // クモの巣
+  for (const w of state.webs) {
+    if (w.sr <= 0) continue;
+    if (Math.hypot(px - w.sx, py - w.sy) < Math.max(w.sr * 1.1, 50)) {
+      w.wob = 1;
+      if (w.sp) pickSpiderFrom(w); else { SFX.boyon(); burst(px, py, 'spark', 3); }
+      return;
+    }
+  }
   for (const f of friendSlots()) {
     if (Math.abs(px - f.x) < f.size * 0.5 && py > f.y - f.size && py < f.y + 10) {
       if (!(state.friendJump[f.i] > 0)) { state.friendJump[f.i] = 1; SFX.boing(); }
@@ -400,8 +474,24 @@ function pickNut(n) {
   state.banner = { sp: n.sp, t: 0 };
   speak(n.sp.name);
 }
+function pickSpiderFrom(w) {
+  const sp = w.sp; w.sp = null;
+  SFX.boyon(); SFX.pick();
+  if (sp.rare) SFX.sparkle();
+  burst(w.sx, w.sy, 'spark', sp.rare ? 14 : 8);
+  state.flying.push({ sp, kind: 'spider', x0: w.sx, y0: w.sy, h0: Math.max(w.sr * 1.2, D * 0.6), t: 0 });
+  state.banner = { sp, t: 0 };
+  speak(sp.name);
+}
 function arrive(f) {
   SFX.plop();
+  if (f.kind === 'spider') {
+    state.spiderBounce = 1;
+    save.spiderTotal = (save.spiderTotal || 0) + 1;
+    save.spiders[f.sp.id] = (save.spiders[f.sp.id] || 0) + 1;
+    persist();
+    return;
+  }
   state.basketBounce = 1;
   save.total++;
   save.counts[f.sp.id] = (save.counts[f.sp.id] || 0) + 1;
@@ -491,6 +581,8 @@ function update(dt) {
   if (state.banner) { state.banner.t += dt; if (state.banner.t > 2.4) state.banner = null; }
   for (const k in state.friendJump) state.friendJump[k] = Math.max(0, state.friendJump[k] - dt * 1.8);
   state.basketBounce = Math.max(0, state.basketBounce - dt * 3);
+  state.spiderBounce = Math.max(0, (state.spiderBounce || 0) - dt * 3);
+  for (const w of state.webs) w.wob = Math.max(0, w.wob - dt * 0.9);
   if (state.sceneMix < 1) state.sceneMix = Math.min(1, state.sceneMix + dt / 2.5);
   updateReward(dt);
 
@@ -509,6 +601,49 @@ function emoji(e, x, y, size, flip = true) {
   ctx.fillStyle = '#000'; // 影の半透明色が絵文字にうつらないように
   ctx.font = `${size}px ${EMOJI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(e, 0, 0); ctx.restore();
+}
+// クモの絵を (cx,cy) を体の中心にして描く。size = 画面上の幅(px)
+function drawSpider(sp, cx, cy, size, rot = 0) {
+  if (!sp.img) return;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot);
+  ctx.drawImage(sp.img, -size / 2, -size * 1.4 * 80 / 140, size, size * 1.4); ctx.restore();
+}
+function drawWeb(w, p) {
+  const r = w.r * p.s, cx = p.x, cy = p.y - w.hgt * p.s;
+  w.sx = cx; w.sy = cy; w.sr = cx > -r && cx < W + r ? r : 0;
+  const wob = Math.sin(state.time * 18) * w.wob * r * 0.08, n = 10;
+  ctx.save(); ctx.translate(cx, cy + wob);
+  ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = Math.max(0.8, r * 0.018); ctx.lineCap = 'round';
+  // 枝と草につながる糸
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.7, -r * 0.7); ctx.lineTo(-r * 1.1, -r * 3);
+  ctx.moveTo(r * 0.7, -r * 0.7); ctx.lineTo(r * 1.2, -r * 3);
+  ctx.moveTo(-r * 0.6, r * 0.8); ctx.lineTo(-r * 0.8, w.hgt * p.s - wob);
+  ctx.moveTo(r * 0.6, r * 0.8); ctx.lineTo(r * 0.9, w.hgt * p.s - wob);
+  // たて糸
+  const pts = [];
+  for (let i = 0; i < n; i++) { const a = (i / n + w.rot * 0.1) * Math.PI * 2; pts.push([Math.cos(a), Math.sin(a) * 0.95]); }
+  for (const [x, y] of pts) { ctx.moveTo(0, 0); ctx.lineTo(x * r, y * r); }
+  // よこ糸（うずまき）
+  for (let k = 1; k <= 6; k++) {
+    const rr = r * k / 6.3;
+    ctx.moveTo(pts[0][0] * rr, pts[0][1] * rr);
+    for (let i = 1; i <= n; i++) { const [x, y] = pts[i % n]; ctx.lineTo(x * rr, y * rr); }
+  }
+  ctx.stroke();
+  // かくれおび（コガネグモはX、ナガコガネグモ・ギンメッキはジグザグ）
+  const deco = w.deco !== undefined ? w.deco : (w.deco = w.sp && w.sp.deco);
+  if (deco) {
+    ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = Math.max(1.2, r * 0.04); ctx.beginPath();
+    if (deco === 'x') for (const [x, y] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+      for (let t = 0.2; t < 0.8; t += 0.1) { const d = t * r * 0.8; ctx.moveTo(x * d, y * d); ctx.lineTo(x * (d + r * 0.08) + y * r * 0.03, y * (d + r * 0.08) - x * r * 0.03); }
+    } else {
+      ctx.moveTo(0, -r * 0.8); for (let t = -0.8; t < 0.8; t += 0.08) ctx.lineTo((Math.round(t * 12.5) % 2 ? 1 : -1) * r * 0.05, t * r);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+  if (w.sp) drawSpider(w.sp, cx, cy + wob + Math.sin(state.time * 2 + w.phase) * r * 0.03, r * 0.95 * w.sp.size);
 }
 // h = 画面上の高さ(px)、yBottom = 地面の位置
 function drawNut(sp, x, yBottom, h, rot = 0) {
@@ -606,11 +741,12 @@ function draw() {
   // 奥から順にならべて描く
   const items = [];
   for (const t of state.trees) { const p = proj(t.x, t.z); if (p.dz > 0.9 && p.dz < FAR) items.push({ dz: p.dz, f: () => { ctx.globalAlpha = fade(p.dz); drawTree(p.x, p.y, t.h * p.s, t, P); ctx.globalAlpha = 1; } }); }
+  for (const w of state.webs) { const p = proj(w.x, w.z); w.sr = 0; if (p.dz > 1.1 && p.dz < FAR) items.push({ dz: p.dz, f: () => { ctx.globalAlpha = fade(p.dz); drawWeb(w, p); ctx.globalAlpha = 1; } }); }
   for (const d of state.decos) { const p = proj(d.x, d.z); if (p.dz > 0.9 && p.dz < FAR && p.x > -50 && p.x < W + 50) items.push({ dz: p.dz, f: () => { ctx.globalAlpha = fade(p.dz); drawDeco(d, p, P); ctx.globalAlpha = 1; } }); }
   for (const n of state.nuts) {
     const p = proj(n.x, n.z);
     n.ph = 0;
-    if (p.dz < NEAR - 0.3 || p.dz > NUT_FAR) continue;
+    if (p.dz < NEAR - 0.1 || p.dz > NUT_FAR) continue;
     const h = NUT_H * n.sp.size * p.s;
     n.sx = p.x; n.sy = p.y; n.ph = p.x > -h && p.x < W + h ? h : 0;
     items.push({ dz: p.dz, f: () => {
@@ -651,10 +787,12 @@ function draw() {
   // とんでいくどんぐり
   for (const f of state.flying) {
     const t = Math.min(1, f.t), e = 1 - Math.pow(1 - t, 2);
-    const x = f.x0 + (L.basketTarget.x - f.x0) * e;
-    const y = f.y0 + (L.basketTarget.y - f.y0) * e - Math.sin(Math.PI * t) * H * 0.15;
+    const tg = f.kind === 'spider' ? L.spiderTarget : L.basketTarget;
+    const x = f.x0 + (tg.x - f.x0) * e;
+    const y = f.y0 + (tg.y - f.y0) * e - Math.sin(Math.PI * t) * H * 0.15;
     const h = t < 0.2 ? f.h0 * (1 + t / 0.2 * 0.5) : f.h0 * 1.5 + (D * 0.4 - f.h0 * 1.5) * (t - 0.2) / 0.8;
-    drawNut(f.sp, x, y + h * 0.45, h, t * 6);
+    if (f.kind === 'spider') drawSpider(f.sp, x, y, h * 0.9, Math.sin(t * 20) * 0.3);
+    else drawNut(f.sp, x, y + h * 0.45, h, t * 6);
   }
   // つぶつぶ
   for (const p of state.parts) {
@@ -691,6 +829,17 @@ function drawUI() {
   ctx.fillText(String(save.total), b.h * 0.45, 3);
   ctx.restore();
 
+  if (save.spiderTotal > 0) {
+    const sb = L.spiderBox, k = Math.sin(state.spiderBounce * Math.PI) * 0.15;
+    ctx.save(); ctx.translate(sb.x + sb.w / 2, sb.y + sb.h / 2); ctx.scale(1 + k, 1 + k);
+    ctx.fillStyle = 'rgba(0,0,0,.15)'; rrect(-sb.w / 2, -sb.h / 2 + 4, sb.w, sb.h, sb.h / 2); ctx.fill();
+    ctx.fillStyle = '#fff'; rrect(-sb.w / 2, -sb.h / 2, sb.w, sb.h, sb.h / 2); ctx.fill();
+    drawSpider(SPIDERS[0], -sb.w / 2 + sb.h * 0.55, 2, sb.h * 0.8);
+    ctx.font = `bold ${sb.h * 0.52}px "Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#6b3a17';
+    ctx.fillText(String(save.spiderTotal), sb.h * 0.4, 3);
+    ctx.restore();
+  }
   const bn = state.banner;
   if (bn && !state.reward) {
     const t = bn.t, sc = t < 0.25 ? 0.5 + 0.5 * Math.sin(t / 0.25 * Math.PI / 2) * 1.1 : 1, al = t > 2 ? 1 - (t - 2) / 0.4 : 1;
@@ -701,7 +850,8 @@ function drawUI() {
     ctx.translate(W / 2, Math.max(H * 0.24, safe.t + L.btn + L.pad * 2 + h / 2)); ctx.scale(sc, sc);
     ctx.fillStyle = bn.sp.rare ? '#fff3b0' : '#fff'; rrect(-w / 2, -h / 2, w, h, h / 2); ctx.fill();
     ctx.strokeStyle = bn.sp.rare ? '#f0a830' : '#e9cf9c'; ctx.lineWidth = 5; ctx.stroke();
-    drawNut(bn.sp, -w / 2 + fs * 0.5 + iw / 2, h * 0.36, h * 0.8 * bn.sp.size, 0);
+    if (SPIDERS.includes(bn.sp)) drawSpider(bn.sp, -w / 2 + fs * 0.5 + iw / 2, 0, h * 0.75);
+    else drawNut(bn.sp, -w / 2 + fs * 0.5 + iw / 2, h * 0.36, h * 0.8 * bn.sp.size, 0);
     ctx.fillStyle = '#6b3a17'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText(bn.sp.kana, -w / 2 + fs * 0.6 + iw, 2);
     ctx.restore();
@@ -769,17 +919,18 @@ $('#start').addEventListener('pointerdown', e => {
 /* ---------- ずかん ---------- */
 function openZukan() {
   state.paused = true;
-  const grid = $('#zgrid'); grid.innerHTML = '';
-  for (const sp of SPECIES) {
-    const n = save.counts[sp.id] || 0, c = document.createElement('button');
+  const fill = (grid, list, counts, unit) => { grid.innerHTML = ''; for (const sp of list) {
+    const n = counts[sp.id] || 0, c = document.createElement('button');
     c.className = 'card' + (n ? '' : ' no');
-    c.innerHTML = `<img src="${sp.url}" alt=""><div class="nm">${n ? sp.kana : '？'}</div><div class="ct">${n ? n + 'こ' : ''}</div>`;
+    c.innerHTML = `<img src="${sp.url}" alt=""><div class="nm${n && sp.kana.length > 6 ? ' long' : ''}">${n ? sp.kana : '？'}</div><div class="ct">${n ? n + unit : ''}</div>`;
     c.addEventListener('click', () => {
       audioInit(); c.classList.remove('wig'); void c.offsetWidth; c.classList.add('wig');
       if (n) { SFX.pick(); speak(sp.name); } else { SFX.boing(); speak('まだ みつけてないよ'); }
     });
     grid.appendChild(c);
-  }
+  } };
+  fill($('#zgrid'), SPECIES, save.counts, 'こ');
+  fill($('#zgrid2'), SPIDERS, save.spiders, 'ひき');
   const fr = $('#zfriends');
   fr.innerHTML = save.friends.length ? `<span class="lb">なかま</span>${save.friends.map(i => ANIMALS[i].e).join(' ')}` : '';
   $('#zukan').classList.remove('hidden');
@@ -804,7 +955,7 @@ function openSettings() { state.paused = true; syncSettingsUI(); $('#settings').
 $('#sclose').addEventListener('click', () => { $('#settings').classList.add('hidden'); state.paused = false; });
 $('#sreset').addEventListener('click', () => {
   if (!confirm('あつめた どんぐりと なかまの きろくを ぜんぶ けしますか？')) return;
-  save.counts = {}; save.total = 0; save.friends = []; persist();
+  save.counts = {}; save.total = 0; save.friends = []; save.spiders = {}; save.spiderTotal = 0; persist();
   state.scene = state.prevScene = 0; state.sceneMix = 1;
 });
 
@@ -820,7 +971,7 @@ loadImages().then(() => {
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
-window.__dg = { state, save, settings, SPECIES, pickNut, L: () => L };
+window.__dg = { state, save, settings, SPECIES, SPIDERS, pickNut, L: () => L };
 </script>
 </body>
 </html>
