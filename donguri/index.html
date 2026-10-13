@@ -346,7 +346,7 @@ function genWorld() {
       for (let i = 0; i < n; i++) addNut(cx + rnd(-0.35, 0.35), z + rnd(0, 0.6), sp || pickSpecies());
     } else addNut(cx, z, pickSpecies());
     // 間かくはバラバラ（短いことが多く、ときどき長い）
-    state.nutZ += (1.0 + Math.random() * Math.random() * 6) / settings.density;
+    state.nutZ += (0.8 + Math.random() * Math.random() * 5) / settings.density;
   }
   while (state.treeZ < zMax) {
     const z = state.treeZ, side = Math.random() < 0.5 ? -1 : 1;
@@ -464,7 +464,7 @@ function friendSlots() {
 /* ---------- 更新 ---------- */
 function update(dt) {
   state.time += dt;
-  const walk = 1.1 * settings.speed;
+  const walk = 0.65 * settings.speed;
   const target = state.started ? (!state.paused && !state.reward ? walk : 0) : 0.35;
   state.speed += (target - state.speed) * Math.min(1, dt * 2.5);
   state.camZ += state.speed * dt;
